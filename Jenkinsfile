@@ -1,7 +1,7 @@
 pipeline {
     agent {
         docker {
-            image 'node:18' // Node + Bash included
+            image 'node:18' // Node.js + bash + npm
             args '-v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
@@ -15,7 +15,17 @@ pipeline {
     }
 
     stages {
-        stage('Create Dockerfile') {
+        stage('Clone Repo') {
+            steps {
+                // This clones the repo into workspace — required before using git commands
+                checkout scm
+
+                // Optional: check .git presence
+                sh 'ls -a'
+            }
+        }
+
+        stage('Generate Dockerfile') {
             steps {
                 sh '''
                     echo "Generating Dockerfile..."
@@ -23,17 +33,15 @@ pipeline {
 FROM node:18
 WORKDIR /app
 RUN npm install -g serve
-COPY index.html .
+COPY . .
 EXPOSE 3000
 CMD ["serve", "-l", "3000", "."]
 EOF
-
-                    echo "<h1>Hello from Jenkins container on port 3000</h1>" > index.html
                 '''
             }
         }
 
-        stage('Build Image') {
+        stage('Build Docker Image') {
             steps {
                 sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
             }
@@ -44,13 +52,12 @@ EOF
                 sh '''
                     docker stop $CONTAINER_NAME || true
                     docker rm $CONTAINER_NAME || true
-
                     docker run -d --name $CONTAINER_NAME -p $HOST_PORT:$CONTAINER_PORT $IMAGE_NAME:$IMAGE_TAG
                 '''
             }
         }
 
-        stage('Confirm Running') {
+        stage('Check Running Container') {
             steps {
                 sh 'docker ps | grep $CONTAINER_NAME'
             }
