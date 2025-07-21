@@ -1,7 +1,7 @@
 pipeline {
     agent {
         docker {
-            image 'docker:24.0.7'
+            image 'node:18' // Node + Bash included
             args '-v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
@@ -12,24 +12,21 @@ pipeline {
         CONTAINER_NAME = 'demo-container'
         HOST_PORT = '3000'
         CONTAINER_PORT = '3000'
-        DOCKER_CONFIG = "${env.WORKSPACE}/.docker"
     }
 
     stages {
         stage('Create Dockerfile') {
             steps {
                 sh '''
-                    mkdir -p $DOCKER_CONFIG
-
                     echo "Generating Dockerfile..."
                     cat <<EOF > Dockerfile
-                    FROM node:18
-                    WORKDIR /app
-                    RUN npm install -g serve
-                    COPY index.html .
-                    EXPOSE 3000
-                    CMD ["serve", "-l", "3000", "."]
-                    EOF
+FROM node:18
+WORKDIR /app
+RUN npm install -g serve
+COPY index.html .
+EXPOSE 3000
+CMD ["serve", "-l", "3000", "."]
+EOF
 
                     echo "<h1>Hello from Jenkins container on port 3000</h1>" > index.html
                 '''
