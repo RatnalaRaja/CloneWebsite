@@ -1,12 +1,8 @@
-
-
-
-
 pipeline {
     agent {
         docker {
             image 'docker:24.0.7'
-          
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
 
@@ -16,12 +12,15 @@ pipeline {
         CONTAINER_NAME = 'demo-container'
         HOST_PORT = '3000'
         CONTAINER_PORT = '3000'
+        DOCKER_CONFIG = "${env.WORKSPACE}/.docker"
     }
 
     stages {
         stage('Create Dockerfile') {
             steps {
                 sh '''
+                    mkdir -p $DOCKER_CONFIG
+
                     echo "Generating Dockerfile..."
                     cat <<EOF > Dockerfile
                     FROM node:18
@@ -45,7 +44,6 @@ pipeline {
 
         stage('Run Container') {
             steps {
-                // Stop existing container if running
                 sh '''
                     docker stop $CONTAINER_NAME || true
                     docker rm $CONTAINER_NAME || true
