@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        sonarScanner 'SonarScanner' 
+    }
+
     environment {
         DOCKER_IMAGE = 'your-dockerhub-username/your-repo-name'
         DOCKER_CREDENTIALS_ID = 'dc193b6d-fa49-4fc5-a1d7-ca1ac1b3980f'  // Jenkins Credentials ID
