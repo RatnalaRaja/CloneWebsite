@@ -20,7 +20,7 @@ pipeline {
                 script {
                     withSonarQubeEnv("${SONARQUBE_ENV}") {
                         // For static websites, scan HTML/JS/CSS files. Assumes you have sonar-project.properties
-                        sh 'sonar-scanner'
+                        sh '/opt/sonar-scanner/bin/sonar-scanner'
                     }
                 }
             }
