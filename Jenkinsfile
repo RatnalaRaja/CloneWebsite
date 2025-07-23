@@ -1,9 +1,6 @@
 pipeline {
     agent any
 
-    tools {
-        sonarScanner 'SonarScanner' 
-    }
 
     environment {
         DOCKER_IMAGE = 'your-dockerhub-username/your-repo-name'
