@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKER_IMAGE = 'your-dockerhub-username/your-repo-name'
         DOCKER_CREDENTIALS_ID = 'dc193b6d-fa49-4fc5-a1d7-ca1ac1b3980f'  // Jenkins Credentials ID
-        SONARQUBE_ENV = 'sonarqube-api'                  // Jenkins SonarQube server config name
+        SONARQUBE_ENV = 'SonarAPI'                  // Jenkins SonarQube server config name
     }
 
     stages {
