@@ -1,66 +1,63 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:18' // Node.js + bash + npm
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
 
     environment {
-        IMAGE_NAME = 'demo-local'
-        IMAGE_TAG = 'v1'
-        CONTAINER_NAME = 'demo-container'
-        HOST_PORT = '3000'
-        CONTAINER_PORT = '3000'
+        DOCKER_IMAGE = 'your-dockerhub-username/your-repo-name'
+        DOCKER_CREDENTIALS_ID = 'dc193b6d-fa49-4fc5-a1d7-ca1ac1b3980f'  // Jenkins Credentials ID
+        SONARQUBE_ENV = 'sonarqube-api'                  // Jenkins SonarQube server config name
     }
 
     stages {
-        stage('Clone Repo') {
+        stage('Checkout') {
             steps {
-                // This clones the repo into workspace — required before using git commands
                 checkout scm
-
-                // Optional: check .git presence
-                sh 'ls -a'
             }
         }
 
-        stage('Generate Dockerfile') {
+        stage('SonarQube Code Quality Check') {
             steps {
-                sh '''
-                    echo "Generating Dockerfile..."
-                    cat <<EOF > Dockerfile
-FROM node:18
-WORKDIR /app
-RUN npm install -g serve
-COPY . .
-EXPOSE 3000
-CMD ["serve", "-l", "3000", "."]
-EOF
-                '''
+                script {
+                    withSonarQubeEnv("${SONARQUBE_ENV}") {
+                        // For static websites, scan HTML/JS/CSS files. Assumes you have sonar-project.properties
+                        sh 'sonar-scanner'
+                    }
+                }
+            }
+        }
+
+        stage('Wait for SonarQube Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
+                script {
+                    sh "docker build -t ${DOCKER_IMAGE}:latest ."
+                }
             }
         }
 
-        stage('Run Container') {
+        stage('Push to Docker Hub') {
             steps {
-                sh '''
-                    docker stop $CONTAINER_NAME || true
-                    docker rm $CONTAINER_NAME || true
-                    docker run -d --name $CONTAINER_NAME -p $HOST_PORT:$CONTAINER_PORT $IMAGE_NAME:$IMAGE_TAG
-                '''
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CREDENTIALS_ID}") {
+                        sh "docker push ${DOCKER_IMAGE}:latest"
+                    }
+                }
             }
         }
+    }
 
-        stage('Check Running Container') {
-            steps {
-                sh 'docker ps | grep $CONTAINER_NAME'
-            }
+    post {
+        success {
+            echo "Pipeline completed successfully!"
+        }
+        failure {
+            echo "Pipeline failed. Check logs."
         }
     }
 }
